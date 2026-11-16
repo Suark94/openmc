@@ -1945,7 +1945,7 @@ void FlatSourceDomain::apply_external_source_to_source_region(
   auto discrete = dynamic_cast<Discrete*>(is->energy());
   double strength_factor = is->strength();
   const auto& discrete_energies = discrete->x();
-  const auto& discrete_probs = discrete->prob();
+  const auto& discrete_probs = discrete->prob_rr();
 
   srh.external_source_present() = 1;
 

@@ -197,6 +197,11 @@ Discrete::Discrete(pugi::xml_node node)
   // First half is x values, second half is probabilities
   x_.assign(params.begin(), params.begin() + n);
   const double* p = params.data() + n;
+  prob_rr_.assign(p, p + n);
+  double sum_p = std::accumulate(prob_rr_.begin(), prob_rr_.end(), 0.0);
+  for (auto& probability : prob_rr_) {
+    probability /= sum_p;
+  }
 
   // Check for bias
   if (check_for_node(node, "bias")) {
@@ -222,9 +227,13 @@ Discrete::Discrete(pugi::xml_node node)
   }
 }
 
-Discrete::Discrete(const double* x, const double* p, size_t n) : di_({p, n})
+Discrete::Discrete(const double* x, const double* p, size_t n)
+  : prob_rr_(p, p + n), di_({p, n})
 {
   x_.assign(x, x + n);
+  for (auto& probability : prob_rr_) {
+    probability /= di_.integral();
+  }
 }
 
 std::pair<double, double> Discrete::sample(uint64_t* seed) const

@@ -3,9 +3,11 @@
 #include "openmc/position.h"
 #include "openmc/random_lcg.h"
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <cmath>
 #include <pugixml.hpp>
+#include <string>
 
 TEST_CASE("Test alias method sampling of a discrete distribution")
 {
@@ -80,6 +82,56 @@ TEST_CASE("Test alias sampling method for pugixml constructor")
       dist.prob()[i], Catch::Matchers::WithinAbs(correct_prob[i], 1e-12));
     REQUIRE(dist.alias()[i] == correct_alias[i]);
   }
+}
+
+TEST_CASE("Discrete physical probabilities are independent of the alias table")
+{
+  double scale = GENERATE(1.0, 10.0);
+  double x[] {1000.0, 1000000.0};
+  double p[] {0.2 * scale, 0.8 * scale};
+  openmc::unique_ptr<openmc::Discrete> dist;
+
+  SECTION("Array constructor")
+  {
+    dist = openmc::make_unique<openmc::Discrete>(x, p, 2);
+  }
+
+  SECTION("XML constructor")
+  {
+    pugi::xml_document doc;
+    auto energy = doc.append_child("energy");
+    auto parameters = energy.append_child("parameters");
+    auto values = std::string("1000 1000000 ") + std::to_string(p[0]) +
+                  " " + std::to_string(p[1]);
+    parameters.text().set(values.c_str());
+
+    SECTION("Unbiased")
+    {
+    }
+    SECTION("Biased")
+    {
+      energy.append_child("bias").text().set("0.9 0.1");
+    }
+
+    dist = openmc::make_unique<openmc::Discrete>(energy);
+  }
+
+  REQUIRE(dist->prob_rr().size() == 2);
+  REQUIRE_THAT(dist->prob_rr()[0], Catch::Matchers::WithinAbs(0.2, 1e-12));
+  REQUIRE_THAT(dist->prob_rr()[1], Catch::Matchers::WithinAbs(0.8, 1e-12));
+
+  // Sampling must still use the alias table and any importance weights.
+  uint64_t seed = openmc::init_seed(0, 0);
+  double first_probability = 0.0;
+  constexpr int n_samples = 100000;
+  for (int i = 0; i < n_samples; ++i) {
+    auto [value, weight] = dist->sample(&seed);
+    if (value == x[0]) {
+      first_probability += weight / n_samples;
+    }
+  }
+  REQUIRE_THAT(
+    first_probability, Catch::Matchers::WithinAbs(0.2, 0.01));
 }
 
 TEST_CASE("Test sampling a large linear-linear tabular distribution")
