@@ -2293,7 +2293,7 @@ class TorusMixin:
     x0 = SurfaceCoefficient('x0')
     y0 = SurfaceCoefficient('y0')
     z0 = SurfaceCoefficient('z0')
-    a = SurfaceCoefficient('a', positive=True)
+    a = SurfaceCoefficient('a')
     b = SurfaceCoefficient('b', positive=True)
     c = SurfaceCoefficient('c', positive=True)
 

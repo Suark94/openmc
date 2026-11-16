@@ -1045,7 +1045,12 @@ double torus_distance(double x1, double x2, double x3, double u1, double u2,
         double s2 = x2 + u2 * root;
         double s3 = x3 + u3 * root;
         double check = D * s3 * s3 + s1 * s1 + s2 * s2 + A * A - C * C;
-        if (check >= 0) {
+        
+        const bool correct_branch =
+          (A >= 0.0 && check >= 0.0) ||
+          (A < 0.0 && check <= 0.0);
+
+        if (correct_branch) {
           distance = root;
         }
       }
